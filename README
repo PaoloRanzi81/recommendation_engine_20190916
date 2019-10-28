@@ -1,0 +1,119 @@
+PROJECT NAME: 'recommendation_engine_2019'
+AUTHOR: Paolo Ranzi (ranzip@hotmail.com)
+README FILE VERSION (LAST UPDATE): 20191022
+
+
+Python 3.6.7 has been used. For each step the specific Python script has been mentioned, accordingly. At the begginning of each script we have to make sure of setting custom-made parameters/pieces of information: 
+- import Python libraries (if you do not have a specific library you have to manually install it by using PIP within your virtual enviroment);  
+- setting paths and keywords according to your storage location;
+- set parameters (e.g. input file name, output file name etc.); 
+- all scripts have been optimized for using them by parallel computing. Please set number of CPUs by searching for 'cpu_count()' within each script according to your available resources; 
+
+P.S.: the computation time estimates are according to 1 day worth of data;  
+
+PROCEDURES (STEPS):
+1) COMPUTING + AGGREGATING: 01 + 02 + 03 + 04 + 05
+2) STATISTICS: 06 + 07 + 14
+3) DETECTING VIDEOS WATCHED MORE THAN ONCE: 08 + 09
+4) ML REGRESSION: 12
+5) ML CLASSIFICATION: 11 + 13
+
+Miscellanues: 10 + 
+
+STEPS: 
+
+01. DOWNLOAD .CSV FILES FROM SERVER
+(computational time 3 Hrs, depending on internet connection speed): 
+SCRIPT NAME: '01_downloading_csv_files_loop_20190923.py'
+INPUT: URL where .csv are located; 
+OUTPUT: local storage system;
+
+02. LOADING .CSV FILES, AGGREGATING DATA AND CALCULATING 'SIMPLE PERCENTAGE' METRIC FOR EACH 'video_id' 
+(computational time by 4 CPUs: 3 Hrs):
+SCRIPT NAME: '02_metric_simple_percentage_20190926.py'
+INPUT: .csv files;
+OUTPUT: 'i_stacked_simple_percentage.csv' with aggretated data and computing simple median; 
+
+03. LOADING .CSV FILES AND CALCULATING 'total_views' FOR EACH 'video_id' + OTHER AGGREGATED VARIABLES (e.g. 'liked', 'disliked' etc.) 
+(computational time by 4 CPUs: 1 Hr):
+SCRIPT NAME: '03_computing_median_20190931.py'
+INPUT: 'i_stacked_simple_percentage.csv';
+OUTPUT: 'ii_simple_median_standardized.csv' counting total views + likes + dislikes + favorites + full-screens for each unique 'video_id';
+
+04. LOADING .CSV FILES AND CALCULATING 'total_seconds_watched' METRIC FOR EACH 'video_id' BY AGGREGATING ALL USERS WHO
+WATCHED THAT PARTICULAR VIDEO (computational time by 4 CPUs: 3.5 Hrs; 3.2 Hrs by 7 AWS vCPUs):
+SCRIPT NAME: '04_total_seconds_watched_20191006.py'
+INPUT: .csv files;
+OUTPUT: 'iii_video_id_seconds_watched.csv' records the total seconds watched by each user for each video; 
+
+05. LOADING 2 AGGREGATED.CSV FILES AND CALCULATING 'relative_engagement' METRIC (please see article below) 
+(computational time by 4 CPUs: 1.5 Hrs, 1.5 Hrs by 7 AWS vCPUs):
+SCRIPT NAME: '05_relative_engagement_20191008.py'
+INPUT: 'iii_video_id_seconds_watched.csv' + 'ii_simple_median_standardized.csv';
+OUTPUT: 'iiii_median_seconds_watched_tmp.csv'; 'iiiii_relative_engagement_quantiles.csv' records the percentiles of engagement (namely, they are the metric 'relative engagement'); 
+
+Wu, S., Rizoiu, M. A., & Xie, L. (2018, June). Beyond views: Measuring and predicting engagement in online videos. In Twelfth International AAAI Conference on Web and Social Media.
+
+06. COMPUTING SUMMARY STATISTICS, ECDFs, PDFs AND PAIR PLOTS ON AGGREGATED DATA
+(computational time by 1 CPU: 10 min):
+SCRIPT NAME: '06_summary_statistics_20190927.py'
+INPUT: '... .csv';
+OUTPUT: figures (.png files); 
+
+07. COMPUTING BOOTSTRAPPING + Ordinary Least Squares (OLS) ON AGGREGATED DATA
+(computational time by 4 CPUs: 30 min for 10000 bootrapping iterations by using 'basic' mode; when using 'studentized' mode it can take hours!):
+SCRIPT NAME: '07_statistics_bootstrap_20190927.py'
+INPUT: '... .csv';
+OUTPUT: Confidence Intervals + Means (p-values, t-values and OLS coefficients);
+
+08. DETECTING VIDEOS WATCHED 2+
+(computational time by 4 CPUs: 3 Hrs; 2.7 Hrs by 7 AWS vCPUs):
+SCRIPT NAME: '08_detecting_double_watching_20191008.py'
+INPUT: .csv files;
+OUTPUT: 'list_of_double_watched_video_id.csv'
+
+09. MERGING VIDEOS WATCHED 2+
+(computational time by 4 CPUs: 10 minutes):
+SCRIPT NAME: '09_merge_watched_more_than_once_20191009.py'
+INPUT: 'list_of_double_watched_video_id.csv' + 'iiiii_relative_engagement_quantiles.csv';
+OUTPUT: 'video_more_than_once_whole.csv' + 'video_more_than_once_small.csv'; 
+
+10. COMPARING MY VIDEOS 2+ WITH OTHER RESEARCHERS' VIDEOS 2+
+(computational time by 4 CPUs: 10 minutes):
+SCRIPT NAME: '10_compare_double_watching_20191001.py'
+INPUT: 'list_of_double_watched_video_id.csv' + 'victor_2_plus_watched';
+OUTPUT: 'merged_victor_paolo.csv'; 
+
+11. PCA + ICA + IF DATA CLEANING 
+(computational time by 4 CPUs: 48 minutes for 5 MB file):
+SCRIPT NAME: '11_re_scores_cleaning_20191018.py'
+INPUT: .csv files;
+OUTPUT: 're_scores_clean.csv'; 
+
+12. GRADIENT BOOSTING REGRESSOR CROSS-VALIDATION (GRID SEARCH/BOOTSTRAPPING) 
+(computational time by 7 AWS vCPUs: 50 minutes for 5 MB file and 30 interations for boostrapping; 
+for grid search it can take days!):
+SCRIPT NAME: '12_collab_filtering_gb_regressor_grid_search_20191019.py'
+INPUT: .csv files;
+OUTPUT: 'best_scores.csv' + 'cv_results.csv'; 
+
+13. GRADIENT BOOSTING CLASSIFIER CROSS-VALIDATION (GRID SEARCH/BOOTSTRAPPING) 
+(computational time by 7 AWS vCPUs: 2.5 Hrs for 5 MB file and 30 interations for boostrapping; 
+for grid search it can take days!):
+SCRIPT NAME: '13_collab_filtering_gb_classifier_grid_search_20191010.py'
+INPUT: .csv files;
+OUTPUT: 'best_scores.csv' + 'cv_results.csv'; 
+
+14. COMPUTING BAYESIAN + MCMC (almost equivalent results as script 07)  
+(computational time by 4 CPUs: 2 Hrs min for 14000 iterations and 4 chains; ):
+SCRIPT NAME: '14_statistics_bayesian_20191001.py'
+INPUT: '... .csv';
+OUTPUT: Confidence Intervals + Means (p-values, t-values and OLS coefficients);
+
+
+
+
+
+
+
+
